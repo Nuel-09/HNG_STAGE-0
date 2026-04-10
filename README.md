@@ -2,9 +2,10 @@
 
 This project exposes a `GET /api/classify` endpoint that accepts a `name` query parameter, calls the Genderize API, processes the response, and returns a normalized output format.
 
-## Base URL (local)
+## Base API URL
 
-`http://localhost:3000`
+- Local: `http://localhost:3000`
+- Live: `hngstage-0-production.up.railway.app`
 
 ## Endpoint
 
