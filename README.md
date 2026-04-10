@@ -5,7 +5,7 @@ This project exposes a `GET /api/classify` endpoint that accepts a `name` query 
 ## Base API URL
 
 - Local: `http://localhost:3000`
-- Live: `hngstage-0-production.up.railway.app`
+- Live: `https://hngstage-0-production.up.railway.app`
 
 ## Endpoint
 
