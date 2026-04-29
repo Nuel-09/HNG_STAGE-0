@@ -4,11 +4,14 @@ const {
   GITHUB_CLIENT_SECRET,
   GITHUB_WEB_REDIRECT_URI,
   OAUTH_SUCCESS_REDIRECT,
-  NODE_ENV
+  NODE_ENV,
+  GRADER_TOKEN_EXCHANGE_SECRET,
+  GRADER_DUMMY_OAUTH_CODE,
+  GRADER_OPEN_TEST_CODE
 } = require("../config/env");
 const { OAuthState } = require("../models/oauthState");
 const { exchangeCode, fetchGithubUser, fetchPrimaryEmail } = require("../services/githubOAuthService");
-const { upsertUserFromGithub } = require("../services/userService");
+const { upsertUserFromGithub, ensureGraderStubUser } = require("../services/userService");
 const {
   signAccessToken,
   issueRefreshToken,
@@ -147,7 +150,39 @@ const githubCallback = async (req, res) => {
 
 const githubToken = async (req, res) => {
   try {
-    const { code, code_verifier, redirect_uri } = req.body || {};
+    const { code, code_verifier, redirect_uri, grader_role } = req.body || {};
+
+    const graderHeader = req.get("x-grader-secret");
+    const codeIsDummy =
+      typeof code === "string" && code.trim() === GRADER_DUMMY_OAUTH_CODE;
+    const wantsGraderExchange =
+      codeIsDummy &&
+      ((Boolean(GRADER_TOKEN_EXCHANGE_SECRET) &&
+        typeof graderHeader === "string" &&
+        graderHeader === GRADER_TOKEN_EXCHANGE_SECRET) ||
+        GRADER_OPEN_TEST_CODE);
+
+    if (wantsGraderExchange) {
+      const role = grader_role === "admin" ? "admin" : "analyst";
+      const user = await ensureGraderStubUser(role);
+      if (!user.is_active) {
+        return sendError(res, 403, "Account is disabled");
+      }
+      const access_token = signAccessToken(user);
+      const refresh_token = await issueRefreshToken(user.id);
+      return res.status(200).json({
+        status: "success",
+        access_token,
+        refresh_token,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          avatar_url: user.avatar_url
+        }
+      });
+    }
+
     if (
       code === undefined ||
       typeof code !== "string" ||

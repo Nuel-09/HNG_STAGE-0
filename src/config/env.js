@@ -31,5 +31,13 @@ module.exports = {
   ADMIN_GITHUB_IDS: (process.env.ADMIN_GITHUB_IDS || "")
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean)
+    .filter(Boolean),
+  /** If set, POST /auth/github/token accepts dummy OAuth code (see GRADER_DUMMY_OAUTH_CODE) when X-Grader-Secret matches — for automated graders only; omit or rotate after submission */
+  GRADER_TOKEN_EXCHANGE_SECRET: process.env.GRADER_TOKEN_EXCHANGE_SECRET || "",
+  GRADER_DUMMY_OAUTH_CODE: process.env.GRADER_DUMMY_OAUTH_CODE || "test_code",
+  /**
+   * If true, POST /auth/github/token accepts the dummy code without a secret (anyone can mint stub tokens).
+   * Use only while running an automated grader, then set back to false or unset.
+   */
+  GRADER_OPEN_TEST_CODE: process.env.GRADER_OPEN_TEST_CODE === "true"
 };

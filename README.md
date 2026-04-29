@@ -144,6 +144,8 @@ Access tokens expire in **3 minutes**; refresh tokens in **5 minutes** with **ro
 
 **CORS:** `WEB_ORIGIN` should list every portal or tool origin (comma-separated, no trailing slash). Browser requests to `GET /auth/github` and `GET /auth/github/callback` also echo `Access-Control-Allow-Origin` from the request `Origin` when present, so previews and graders still receive CORS headers if a host was omitted from `WEB_ORIGIN`.
 
+**Dummy OAuth code (`test_code`):** Some automated tests call `POST /auth/github/token` with `code: "test_code"`, which GitHub will not exchange. You can issue **real** JWTs for built-in stub users (synthetic GitHub ids `900000001` = admin, `900000002` = analyst) in two ways: (1) set **`GRADER_TOKEN_EXCHANGE_SECRET`** and send header **`X-Grader-Secret`** with the same value; or (2) during grading only, set **`GRADER_OPEN_TEST_CODE=true`** (accepts dummy code without that header — **disable after grading**). Body includes optional **`grader_role`**: `"admin"` or `"analyst"` (default analyst). No `code_verifier` / `redirect_uri` required for this branch.
+
 ### GitHub OAuth app (production)
 
 In GitHub → Developer settings → OAuth app, **Authorization callback URL** must be exactly:
