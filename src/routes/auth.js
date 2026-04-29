@@ -18,4 +18,13 @@ router.post("/github/token", githubToken);
 router.post("/refresh", csrfProtect, refresh);
 router.post("/logout", csrfProtect, logout);
 
+const logoutMethodNotAllowed = (req, res) => {
+  res.setHeader("Allow", "POST");
+  return res.status(405).json({ status: "error", message: "Method Not Allowed" });
+};
+router.get("/logout", logoutMethodNotAllowed);
+router.put("/logout", logoutMethodNotAllowed);
+router.delete("/logout", logoutMethodNotAllowed);
+router.patch("/logout", logoutMethodNotAllowed);
+
 module.exports = router;

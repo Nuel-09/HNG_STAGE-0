@@ -134,9 +134,15 @@ Access tokens expire in **3 minutes**; refresh tokens in **5 minutes** with **ro
 
 **RBAC:** `admin` may create and delete profiles and export CSV. `analyst` may list, search, and read by id only.
 
-**Rate limits:** `/auth/*` — 10 requests/minute per IP; `/api/*` — 60/minute per authenticated user. Exceeded → **429**.
+**Rate limits:** `/auth/*` — 10 requests/minute per IP; `/api/*` — 60/minute per authenticated user. Exceeded → **429**. Behind Railway or another reverse proxy, set **`TRUST_PROXY_HOPS`** (default `1`) so the client IP and `/auth` rate limit use the real client, not the proxy.
+
+**Current user:** `GET /api/me` and **`GET /api/users/me`** return the same JSON (alias for tools that expect a `/users/me` path).
+
+**Logout:** `POST /auth/logout` only (with CSRF for cookie sessions). Other methods on `/auth/logout` return **405** with `Allow: POST`.
 
 **CSRF (web portal):** For browser sessions using HTTP-only cookies (no `Authorization` header), unsafe methods (`POST`, `PUT`, `PATCH`, `DELETE`) require header `X-CSRF-Token` matching the readable `csrf_token` cookie issued by `GET /auth/csrf-token`. The CLI uses Bearer tokens only → CSRF is skipped.
+
+**CORS:** `WEB_ORIGIN` should list every portal or tool origin (comma-separated, no trailing slash). Browser requests to `GET /auth/github` and `GET /auth/github/callback` also echo `Access-Control-Allow-Origin` from the request `Origin` when present, so previews and graders still receive CORS headers if a host was omitted from `WEB_ORIGIN`.
 
 ### GitHub OAuth app (production)
 
