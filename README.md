@@ -69,7 +69,7 @@ Stage 3 (auth, RBAC, export):
 - `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — GitHub OAuth app
 - `GITHUB_WEB_REDIRECT_URI` — must match the app callback (e.g. `http://localhost:3000/auth/github/callback`)
 - `WEB_ORIGIN` — allowed browser origin(s) for CORS with credentials (comma-separated), or `*` for permissive dev
-- `OAUTH_SUCCESS_REDIRECT` — where the web app lands after OAuth (e.g. `http://localhost:5173`)
+- `OAUTH_SUCCESS_REDIRECT` — **full URL** where the browser lands after OAuth (e.g. `https://your-portal.up.railway.app/`). Do not omit `https://` in Railway (host-only values are normalized in code, but GitHub OAuth callback URL below must be exact).
 - `ADMIN_GITHUB_IDS` — comma-separated GitHub numeric user IDs granted `admin` on first login
 - `NODE_ENV` — set to `production` for secure cookies
 
@@ -112,6 +112,16 @@ Access tokens expire in **3 minutes**; refresh tokens in **5 minutes** with **ro
 **Rate limits:** `/auth/*` — 10 requests/minute per IP; `/api/*` — 60/minute per authenticated user. Exceeded → **429**.
 
 **CSRF (web portal):** For browser sessions using HTTP-only cookies (no `Authorization` header), unsafe methods (`POST`, `PUT`, `PATCH`, `DELETE`) require header `X-CSRF-Token` matching the readable `csrf_token` cookie issued by `GET /auth/csrf-token`. The CLI uses Bearer tokens only → CSRF is skipped.
+
+### GitHub OAuth app (production)
+
+In GitHub → Developer settings → OAuth app, **Authorization callback URL** must be exactly:
+
+`https://<your-api-host>/auth/github/callback`
+
+Example: `https://hngstage-0-production.up.railway.app/auth/github/callback`
+
+Do **not** use your web portal hostname or extra path segments here (wrong callback URLs produce `Cannot GET /auth/github/...` after login).
 
 ## Auth endpoints
 
