@@ -12,7 +12,17 @@ Production-ready profile API for Insighta Labs with:
 ## Base URL
 
 - Local: `http://localhost:3000`
-- Live: `https://<your-live-domain>`
+- Live (Railway): `https://hngstage-0-production.up.railway.app`
+
+## Repositories & live deployment (submission)
+
+| Artifact | Repository | Live URL |
+|----------|------------|----------|
+| **Backend** (this repo) | https://github.com/Nuel-09/HNG_STAGE-1 | https://hngstage-0-production.up.railway.app |
+| **CLI** | https://github.com/Nuel-09/Insighta-Cli | runs locally (`insighta` command) |
+| **Web portal** | https://github.com/Nuel-09/Insighta-WebPortal | https://insighta-webportal-production.up.railway.app |
+
+**Submission bundle:** paste the three repository URLs plus the **live backend URL** and **live web portal URL** from the table above into your Stage 3 submission form.
 
 ## Tech Stack
 
@@ -67,19 +77,34 @@ Stage 3 (auth, RBAC, export):
 
 - `JWT_SECRET` — required for access/refresh token signing
 - `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — GitHub OAuth app
-- `GITHUB_WEB_REDIRECT_URI` — must match the app callback (e.g. `http://localhost:3000/auth/github/callback`)
+- `GITHUB_WEB_REDIRECT_URI` — must match GitHub OAuth app callback exactly (local: `http://localhost:3000/auth/github/callback`; production: `https://hngstage-0-production.up.railway.app/auth/github/callback`)
 - `WEB_ORIGIN` — allowed browser origin(s) for CORS with credentials (comma-separated), or `*` for permissive dev
 - `OAUTH_SUCCESS_REDIRECT` — **full URL** where the browser lands after OAuth (e.g. `https://your-portal.up.railway.app/`). Do not omit `https://` in Railway (host-only values are normalized in code, but GitHub OAuth callback URL below must be exact).
 - `ADMIN_GITHUB_IDS` — comma-separated GitHub numeric user IDs granted `admin` on first login
 - `NODE_ENV` — set to `production` for secure cookies
 
-## Setup and Run
+## Setup and Run (local)
+
+From the repository root:
 
 ```bash
 npm install
+cp .env.example .env
+# Windows CMD: copy .env.example .env
+# Edit .env: set MONGODB_URI, JWT_SECRET, GitHub OAuth vars, WEB_ORIGIN, etc.
 npm run seed
 npm start
 ```
+
+Server listens on `PORT` (default `3000`). Health check: open `http://localhost:3000` or call any documented route with correct headers.
+
+### Test (CI / local)
+
+```bash
+npm test
+```
+
+Runs `node --check` on `server.js`, `seed.js`, and tracked `src/**/*.js` modules (syntax validation). GitHub Actions runs the same on pull requests and pushes to `main` (`.github/workflows/ci.yml`).
 
 ## Seeding (2026 profiles)
 
@@ -345,4 +370,19 @@ Clients (CLI Bearer / Web cookies)
 
 ## GitHub Actions
 
-On push/PR to `main`, CI runs `npm test` (see `.github/workflows/ci.yml`).
+On push/PR to `main`, CI runs `npm test` (see `.github/workflows/ci.yml`). Merge only when CI is green.
+
+---
+
+## Stage 3 submission checklist (copy into PR or submission form)
+
+Use this list before you submit; tick each item.
+
+- [ ] **Repositories:** Backend https://github.com/Nuel-09/HNG_STAGE-1 · CLI https://github.com/Nuel-09/Insighta-Cli · Web https://github.com/Nuel-09/Insighta-WebPortal  
+- [ ] **Live backend URL:** https://hngstage-0-production.up.railway.app  
+- [ ] **Live web portal URL:** https://insighta-webportal-production.up.railway.app  
+- [ ] **GitHub OAuth app:** Authorization callback = `https://hngstage-0-production.up.railway.app/auth/github/callback` (and localhost callback for dev if needed)  
+- [ ] **Railway backend env:** `WEB_ORIGIN` includes portal origin; `OAUTH_SUCCESS_REDIRECT` is full portal URL; `GITHUB_WEB_REDIRECT_URI` matches GitHub app  
+- [ ] **Smoke test:** Login via web → dashboard; `GET /api/me` with cookies + `X-API-Version: 1`; CLI `insighta login` against live API URL  
+- [ ] **CI:** Latest `main` green on all three repos  
+- [ ] **READMEs:** Architecture, auth, CLI usage, tokens, RBAC, NL parsing documented (this file + sibling repos)
