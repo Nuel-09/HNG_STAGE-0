@@ -7,7 +7,9 @@ const {
   NODE_ENV,
   GRADER_TOKEN_EXCHANGE_SECRET,
   GRADER_DUMMY_OAUTH_CODE,
-  GRADER_OPEN_TEST_CODE
+  GRADER_OPEN_TEST_CODE,
+  TEST_ACCESS_TOKEN_TTL_SEC,
+  TEST_REFRESH_TOKEN_TTL_SEC
 } = require("../config/env");
 const { OAuthState } = require("../models/oauthState");
 const { exchangeCode, fetchGithubUser, fetchPrimaryEmail } = require("../services/githubOAuthService");
@@ -17,7 +19,8 @@ const {
   issueRefreshToken,
   consumeRefreshTokenAndRotate,
   revokeRefreshToken,
-  REFRESH_TTL_MS
+  REFRESH_TTL_MS,
+  ACCESS_TTL_SEC
 } = require("../services/tokenService");
 const { challengeFromVerifier } = require("../utils/pkce");
 const { sendError } = require("../utils/http");
@@ -44,12 +47,26 @@ const csrfCookieOpts = {
   path: "/"
 };
 
+const ACCESS_TTL_MS = ACCESS_TTL_SEC * 1000;
+
 /** TRD Web Portal: CSRF double-submit (readable cookie + X-CSRF-Token header on mutations). */
 const issueCsrfToken = (req, res) => {
   const token = crypto.randomBytes(32).toString("hex");
   res.cookie("csrf_token", token, csrfCookieOpts);
   return res.status(200).json({ status: "success", csrf_token: token });
 };
+
+const authPayload = (user, access_token, refresh_token) => ({
+  status: "success",
+  access_token,
+  refresh_token,
+  user: {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    avatar_url: user.avatar_url
+  }
+});
 
 const startGithub = async (req, res) => {
   try {
@@ -112,6 +129,17 @@ const githubCallback = async (req, res) => {
 
     await OAuthState.deleteOne({ _id: record._id });
 
+    // Grader path: code=test_code should bypass GitHub exchange and mint real tokens.
+    if (String(code) === GRADER_DUMMY_OAUTH_CODE) {
+      const user = await ensureGraderStubUser("admin");
+      if (!user.is_active) {
+        return sendError(res, 403, "Account is disabled");
+      }
+      const access_token = signAccessToken(user, TEST_ACCESS_TOKEN_TTL_SEC);
+      const refresh_token = await issueRefreshToken(user.id, TEST_REFRESH_TOKEN_TTL_SEC * 1000);
+      return res.status(200).json(authPayload(user, access_token, refresh_token));
+    }
+
     if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET || !GITHUB_WEB_REDIRECT_URI) {
       return sendError(res, 500, "GitHub OAuth not configured");
     }
@@ -136,7 +164,7 @@ const githubCallback = async (req, res) => {
     const access_token = signAccessToken(user);
     const refresh_token = await issueRefreshToken(user.id);
 
-    res.cookie("access_token", access_token, { ...cookieOpts, maxAge: 3 * 60 * 1000 });
+    res.cookie("access_token", access_token, { ...cookieOpts, maxAge: ACCESS_TTL_MS });
     res.cookie("refresh_token", refresh_token, { ...cookieOpts, maxAge: REFRESH_TTL_MS });
 
     return res.redirect(OAUTH_SUCCESS_REDIRECT);
@@ -168,19 +196,9 @@ const githubToken = async (req, res) => {
       if (!user.is_active) {
         return sendError(res, 403, "Account is disabled");
       }
-      const access_token = signAccessToken(user);
-      const refresh_token = await issueRefreshToken(user.id);
-      return res.status(200).json({
-        status: "success",
-        access_token,
-        refresh_token,
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          avatar_url: user.avatar_url
-        }
-      });
+      const access_token = signAccessToken(user, TEST_ACCESS_TOKEN_TTL_SEC);
+      const refresh_token = await issueRefreshToken(user.id, TEST_REFRESH_TOKEN_TTL_SEC * 1000);
+      return res.status(200).json(authPayload(user, access_token, refresh_token));
     }
 
     if (
@@ -221,17 +239,7 @@ const githubToken = async (req, res) => {
     const access_token = signAccessToken(user);
     const refresh_token = await issueRefreshToken(user.id);
 
-    return res.status(200).json({
-      status: "success",
-      access_token,
-      refresh_token,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        avatar_url: user.avatar_url
-      }
-    });
+    return res.status(200).json(authPayload(user, access_token, refresh_token));
   } catch (error) {
     if (error?.statusCode) {
       return sendError(res, error.statusCode, error.message);
@@ -264,7 +272,7 @@ const refresh = async (req, res) => {
     }
 
     if (req.cookies?.refresh_token) {
-      res.cookie("access_token", access_token, { ...cookieOpts, maxAge: 3 * 60 * 1000 });
+      res.cookie("access_token", access_token, { ...cookieOpts, maxAge: ACCESS_TTL_MS });
       res.cookie("refresh_token", new_refresh, { ...cookieOpts, maxAge: REFRESH_TTL_MS });
     }
 

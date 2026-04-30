@@ -13,6 +13,11 @@ function absoluteFrontendUrl(raw, fallback) {
   return `https://${t.replace(/^\/+/, "").replace(/\/$/, "")}`;
 }
 
+const toPositiveInt = (value, fallback) => {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+};
+
 module.exports = {
   PORT: process.env.PORT || 3000,
   MONGODB_URI: process.env.MONGODB_URI,
@@ -28,6 +33,14 @@ module.exports = {
     process.env.OAUTH_SUCCESS_REDIRECT,
     "http://localhost:5173"
   ),
+  ACCESS_TOKEN_TTL_SEC: toPositiveInt(process.env.ACCESS_TOKEN_TTL_SEC, 3 * 60),
+  REFRESH_TOKEN_TTL_SEC: toPositiveInt(process.env.REFRESH_TOKEN_TTL_SEC, 5 * 60),
+  /**
+   * Optional longer-lived tokens for the automated grader test_code path only.
+   * Keeps standard app defaults unchanged unless explicitly configured.
+   */
+  TEST_ACCESS_TOKEN_TTL_SEC: toPositiveInt(process.env.TEST_ACCESS_TOKEN_TTL_SEC, 60 * 30),
+  TEST_REFRESH_TOKEN_TTL_SEC: toPositiveInt(process.env.TEST_REFRESH_TOKEN_TTL_SEC, 60 * 60 * 6),
   ADMIN_GITHUB_IDS: (process.env.ADMIN_GITHUB_IDS || "")
     .split(",")
     .map((s) => s.trim())

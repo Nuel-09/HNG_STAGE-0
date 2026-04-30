@@ -1,15 +1,14 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const { v7: uuidv7 } = require("uuid");
 const { RefreshToken } = require("../models/refreshToken");
-const { JWT_SECRET } = require("../config/env");
+const { JWT_SECRET, ACCESS_TOKEN_TTL_SEC, REFRESH_TOKEN_TTL_SEC } = require("../config/env");
 
-const ACCESS_TTL_SEC = 3 * 60;
-const REFRESH_TTL_MS = 5 * 60 * 1000;
+const ACCESS_TTL_SEC = ACCESS_TOKEN_TTL_SEC;
+const REFRESH_TTL_MS = REFRESH_TOKEN_TTL_SEC * 1000;
 
 const hashToken = (plain) => crypto.createHash("sha256").update(plain).digest("hex");
 
-const signAccessToken = (user) => {
+const signAccessToken = (user, ttlSec = ACCESS_TTL_SEC) => {
   if (!JWT_SECRET) throw new Error("JWT_SECRET is not configured");
   return jwt.sign(
     {
@@ -18,7 +17,7 @@ const signAccessToken = (user) => {
       github_id: user.github_id
     },
     JWT_SECRET,
-    { expiresIn: ACCESS_TTL_SEC }
+    { expiresIn: ttlSec }
   );
 };
 
@@ -27,10 +26,10 @@ const verifyAccessToken = (token) => {
   return jwt.verify(token, JWT_SECRET);
 };
 
-const issueRefreshToken = async (userId) => {
+const issueRefreshToken = async (userId, ttlMs = REFRESH_TTL_MS) => {
   const plain = crypto.randomBytes(48).toString("hex");
   const token_hash = hashToken(plain);
-  const expires_at = new Date(Date.now() + REFRESH_TTL_MS);
+  const expires_at = new Date(Date.now() + ttlMs);
   await RefreshToken.create({ token_hash, user_id: userId, expires_at });
   return plain;
 };
