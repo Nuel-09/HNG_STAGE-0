@@ -1,6 +1,7 @@
 const { verifyAccessToken } = require("../services/tokenService");
 const { User } = require("../models/user");
 
+// Accepts Bearer token (CLI) or access_token cookie (web) and loads req.user.
 const authenticate = async (req, res, next) => {
   let token = null;
   const authHeader = req.headers.authorization;

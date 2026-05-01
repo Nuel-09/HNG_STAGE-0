@@ -1,3 +1,4 @@
+// TRD requirement: all /api/* requests must include X-API-Version: 1.
 const requireApiVersion = (req, res, next) => {
   const version = req.headers["x-api-version"];
   if (version !== "1") {

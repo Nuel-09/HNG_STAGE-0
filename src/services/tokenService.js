@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const { RefreshToken } = require("../models/refreshToken");
 const { JWT_SECRET, ACCESS_TOKEN_TTL_SEC, REFRESH_TOKEN_TTL_SEC } = require("../config/env");
 
+// Token lifetimes are environment-driven to support testing and production.
 const ACCESS_TTL_SEC = ACCESS_TOKEN_TTL_SEC;
 const REFRESH_TTL_MS = REFRESH_TOKEN_TTL_SEC * 1000;
 
@@ -35,6 +36,7 @@ const issueRefreshToken = async (userId, ttlMs = REFRESH_TTL_MS) => {
 };
 
 const consumeRefreshTokenAndRotate = async (plainRefresh) => {
+  // Refresh rotation: old token is consumed once and immediately replaced.
   const token_hash = hashToken(plainRefresh);
   const existing = await RefreshToken.findOne({ token_hash });
   if (!existing || existing.expires_at < new Date()) {

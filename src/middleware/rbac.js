@@ -1,3 +1,4 @@
+// Central role gate to avoid scattered permission checks in controllers.
 const requireRoles = (...roles) => (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ status: "error", message: "Unauthorized" });

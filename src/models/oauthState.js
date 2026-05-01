@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+// Stores one-time PKCE state for web OAuth callback verification.
 const oauthStateSchema = new mongoose.Schema(
   {
     state: { type: String, required: true, unique: true },
